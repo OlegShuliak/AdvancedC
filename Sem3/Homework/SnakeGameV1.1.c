@@ -202,6 +202,21 @@ int checkDirection(snake_t* snake, int32_t key) {
 	return checkDir;
 }
 
+void printLevel(struct snake_t *head){
+	int level = (int)(head->tsize) - (int)(START_TAIL_SIZE);
+	mvprintw(1, 0,"LEVEL: %d", level);
+}
+
+void printExit(struct snake_t *head){
+	move(0,0);
+	clear();
+	refresh();
+	printf("YOUR RESULTS:\n");
+	printf("Level: %d\n", ((int)(head->tsize) - (int)(START_TAIL_SIZE)));
+	printf("Well done!!!\n");
+	sleep(3);
+}
+
 int main(int argc, char **argv)
 {
 	snake_t* snake = (snake_t*)malloc(sizeof(snake_t)); 
@@ -222,7 +237,6 @@ int main(int argc, char **argv)
 		key_pressed = getch(); // Считываем клавишу    
 		go(snake);
 		goTail(snake);    
-		timeout(100); // Задержка при отрисовке
 		if (checkDirection(snake, key_pressed)) {   
 			changeDirection(snake, key_pressed); 
 		}
@@ -230,8 +244,10 @@ int main(int argc, char **argv)
 		if (haveEat(snake, food)){
 			addTail(snake);
 		}    
+		printLevel(snake);
 		 while ((double)(clock() - begin)/CLOCKS_PER_SEC<DELAY) {}
 	} 
+	printExit(snake);
 	free(snake->tail); 
 	free(snake); 
 	endwin(); // Завершаем режим curses mod
