@@ -218,9 +218,7 @@ void printExit(struct snake_t *head){
 }
 
 double speedUp(double DELAY){
-	if (DELAY > 0.01){
-		DELAY -= 0.01;
-	}
+	DELAY += 0.01;
 	return DELAY;
 }
 
@@ -243,8 +241,7 @@ int main(int argc, char **argv)
 		clock_t begin = clock();   
 		key_pressed = getch(); // Считываем клавишу    
 		go(snake);
-		goTail(snake);
-		timeout(100);    
+		goTail(snake);   
 		if (checkDirection(snake, key_pressed)) {   
 			changeDirection(snake, key_pressed); 
 		}
