@@ -218,7 +218,10 @@ int main(int argc, char **argv)
 	while( key_pressed != STOP_GAME ) {    
 		key_pressed = getch(); // Считываем клавишу
 		refreshFood(food, SEED_NUMBER);    
-		go(snake);    
+		go(snake);
+		if (haveEat(snake, food)){
+			addTail(snake);
+		}    
 		goTail(snake);    
 		timeout(100); // Задержка при отрисовке
 		if (checkDirection(snake, key_pressed)) {   
