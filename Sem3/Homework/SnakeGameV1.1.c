@@ -217,6 +217,13 @@ void printExit(struct snake_t *head){
 	sleep(3);
 }
 
+double speedUp(double DELAY){
+	if (DELAY > 0.01){
+		DELAY -= 0.01;
+	}
+	return DELAY;
+}
+
 int main(int argc, char **argv)
 {
 	snake_t* snake = (snake_t*)malloc(sizeof(snake_t)); 
@@ -236,13 +243,15 @@ int main(int argc, char **argv)
 		clock_t begin = clock();   
 		key_pressed = getch(); // Считываем клавишу    
 		go(snake);
-		goTail(snake);    
+		goTail(snake);
+		timeout(100);    
 		if (checkDirection(snake, key_pressed)) {   
 			changeDirection(snake, key_pressed); 
 		}
 		refreshFood(food, SEED_NUMBER);
 		if (haveEat(snake, food)){
 			addTail(snake);
+			speedUp(DELAY);
 		}    
 		printLevel(snake);
 		 while ((double)(clock() - begin)/CLOCKS_PER_SEC<DELAY) {}
