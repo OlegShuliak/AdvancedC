@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <curses.h>
+#include <time.h>
 
 #define MIN_Y  2
  
@@ -215,18 +216,21 @@ int main(int argc, char **argv)
 	timeout(0); //Отключаем таймаут после нажатия клавиши в цикле 
 	int key_pressed=0; 
 	putFood(food, SEED_NUMBER);
-	while( key_pressed != STOP_GAME ) {    
-		key_pressed = getch(); // Считываем клавишу
-		refreshFood(food, SEED_NUMBER);    
+	double DELAY = 0.1;
+	while( key_pressed != STOP_GAME ) { 
+		clock_t begin = clock();   
+		key_pressed = getch(); // Считываем клавишу    
 		go(snake);
-		if (haveEat(snake, food)){
-			addTail(snake);
-		}    
 		goTail(snake);    
 		timeout(100); // Задержка при отрисовке
 		if (checkDirection(snake, key_pressed)) {   
 			changeDirection(snake, key_pressed); 
 		}
+		refreshFood(food, SEED_NUMBER);
+		if (haveEat(snake, food)){
+			addTail(snake);
+		}    
+		 while ((double)(clock() - begin)/CLOCKS_PER_SEC<DELAY) {}
 	} 
 	free(snake->tail); 
 	free(snake); 
