@@ -3,12 +3,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <curses.h>
-#include <time.h>
 
 #define MIN_Y  2
  
 enum {LEFT=1, UP, RIGHT, DOWN, STOP_GAME=KEY_F(10)}; 
-enum {MAX_TAIL_SIZE=100, START_TAIL_SIZE=3, MAX_FOOD_SIZE=20, FOOD_EXPIRE_SECONDS=10, SEED_NUMBER=3};
+enum {MAX_TAIL_SIZE=100, START_TAIL_SIZE=3, MAX_FOOD_SIZE=20, FOOD_EXPIRE_SECONDS=10};
 
 struct control_buttons {    
 	int down;    
@@ -31,13 +30,6 @@ typedef struct tail_t {
 	int y; 
 } tail_t;
 
-struct food {    
-	int x;    
-	int y;    
-	time_t put_time;    
-	char point;    
-	uint8_t enable; 
-} food[MAX_FOOD_SIZE];
 
 struct control_buttons default_controls [3] = {{KEY_DOWN, KEY_UP, KEY_LEFT, KEY_RIGHT}, {'s', 'w', 'a', 'd'}, {'S', 'W', 'A', 'D'}};
 
@@ -62,66 +54,6 @@ void initSnake(snake_t *head, size_t size, int x, int y) {
 	head->tail = tail; // прикрепляем к голове хвост 
 	head->tsize = size+1; 
 	head->controls = default_controls;
-}
-
-void initFood(struct food f[], size_t size) {    
-	struct food init = {0,0,0,0,0};    
-	int max_y=0, max_x=0;    
-	getmaxyx(stdscr, max_y, max_x);    
-	for(size_t i=0; i<size; i++){        
-		f[i] = init;    
-	} 
-}
-
-void putFoodSeed(struct food *fp) {    // Обновить/разместить текущее зерно на поле
-	int max_x=0, max_y=0;    
-	char spoint[2] = {0};    
-	getmaxyx(stdscr, max_y, max_x);    
-	mvprintw(fp->y, fp->x, " ");    
-	fp->x = rand() % (max_x - 1);    
-	fp->y = rand() % (max_y - 2) + 1; //Не занимаем верхнюю строку    
-	fp->put_time = time(NULL);    
-	fp->point = '$';    
-	fp->enable = 1;    
-	spoint[0] = fp->point;    
-	mvprintw(fp->y, fp->x, "%s", spoint); 
-}
-
-void putFood(struct food f[], size_t number_seeds) {    //Разместить еду на поле
-	for(size_t i=0; i<number_seeds; i++) {        
-		putFoodSeed(&f[i]);    
-	} 
-}
-
-void refreshFood(struct food f[], int nfood) {    //Обновление еды
-	int max_x=0, max_y=0;    
-	char spoint[2] = {0};    
-	getmaxyx(stdscr, max_y, max_x);    
-	for(size_t i=0; i<nfood; i++) {        
-		if( f[i].put_time ) {            
-			if( !f[i].enable || (time(NULL) - f[i].put_time) > FOOD_EXPIRE_SECONDS ) {                
-				putFoodSeed(&f[i]);            
-			}        
-		}    
-	} 
-}
-
-_Bool haveEat(struct snake_t *head, struct food f[]) {   //Поедания зерна змейкой 
-	for(size_t i=0; i<MAX_FOOD_SIZE; i++) {       
-		if( f[i].enable && head->x == f[i].x && head->y == f[i].y  ) {            
-			f[i].enable = 0;            
-			return 1;        
-		}    
-	}
-	return 0; 
-}
-
-void addTail(struct snake_t *head) {    //Увеличение хвоста на 1 элемент
-	if(head == NULL || head->tsize>MAX_TAIL_SIZE) {        
-		mvprintw(0, 0, "Can't add tail");        
-		return;    
-	}    
-	head->tsize++; 
 }
 
 void go(struct snake_t *head){ 
@@ -202,6 +134,7 @@ int checkDirection(snake_t* snake, int32_t key) {
 	return checkDir;
 }
 
+
 void printLevel(struct snake_t *head){
 	int level = (int)(head->tsize) - (int)(START_TAIL_SIZE);
 	mvprintw(1, 0,"LEVEL: %d", level);
@@ -226,7 +159,6 @@ int main(int argc, char **argv)
 {
 	snake_t* snake = (snake_t*)malloc(sizeof(snake_t)); 
 	initSnake(snake,START_TAIL_SIZE,10,10); 
-	initFood(food, MAX_FOOD_SIZE);
 	initscr(); 
 	keypad(stdscr, TRUE); // Включаем F1, F2, стрелки и т.д. 
 	raw();            // Откдючаем line buffering 
@@ -235,25 +167,17 @@ int main(int argc, char **argv)
 	mvprintw(0, 0,"Use arrows for control. Press 'F10' for EXIT"); 
 	timeout(0); //Отключаем таймаут после нажатия клавиши в цикле 
 	int key_pressed=0; 
-	putFood(food, SEED_NUMBER);
-	double DELAY = 0.1;
-	while( key_pressed != STOP_GAME ) { 
-		clock_t begin = clock();   
+	while( key_pressed != STOP_GAME ) {    
 		key_pressed = getch(); // Считываем клавишу    
 		go(snake);
 		goTail(snake);   
+		go(snake);    
+		goTail(snake);    
+		timeout(100); // Задержка при отрисовке
 		if (checkDirection(snake, key_pressed)) {   
 			changeDirection(snake, key_pressed); 
 		}
-		refreshFood(food, SEED_NUMBER);
-		if (haveEat(snake, food)){
-			addTail(snake);
-			speedUp(DELAY);
-		}    
-		printLevel(snake);
-		 while ((double)(clock() - begin)/CLOCKS_PER_SEC<DELAY) {}
 	} 
-	printExit(snake);
 	free(snake->tail); 
 	free(snake); 
 	endwin(); // Завершаем режим curses mod
