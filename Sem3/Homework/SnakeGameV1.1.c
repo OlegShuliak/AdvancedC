@@ -134,6 +134,27 @@ int checkDirection(snake_t* snake, int32_t key) {
 	return checkDir;
 }
 
+
+void printLevel(struct snake_t *head){
+	int level = (int)(head->tsize) - (int)(START_TAIL_SIZE);
+	mvprintw(1, 0,"LEVEL: %d", level);
+}
+
+void printExit(struct snake_t *head){
+	move(0,0);
+	clear();
+	refresh();
+	printf("YOUR RESULTS:\n");
+	printf("Level: %d\n", ((int)(head->tsize) - (int)(START_TAIL_SIZE)));
+	printf("Well done!!!\n");
+	sleep(3);
+}
+
+double speedUp(double DELAY){
+	DELAY += 0.01;
+	return DELAY;
+}
+
 int main(int argc, char **argv)
 {
 	snake_t* snake = (snake_t*)malloc(sizeof(snake_t)); 
@@ -148,6 +169,8 @@ int main(int argc, char **argv)
 	int key_pressed=0; 
 	while( key_pressed != STOP_GAME ) {    
 		key_pressed = getch(); // Считываем клавишу    
+		go(snake);
+		goTail(snake);   
 		go(snake);    
 		goTail(snake);    
 		timeout(100); // Задержка при отрисовке
