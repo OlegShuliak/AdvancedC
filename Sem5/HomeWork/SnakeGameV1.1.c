@@ -6,10 +6,13 @@
 #include <time.h>
 
 #define MIN_Y  2
+#define PLAYERS  2
 
  
 enum {LEFT, UP, RIGHT, DOWN, STOP_GAME=KEY_F(10), PAUSE_GAME='p'}; 
-enum {MAX_TAIL_SIZE=100, START_TAIL_SIZE=3, MAX_FOOD_SIZE=20, FOOD_EXPIRE_SECONDS=10, SEED_NUMBER=3};
+enum {MAX_TAIL_SIZE=100, START_TAIL_SIZE=3, MAX_FOOD_SIZE=20, FOOD_EXPIRE_SECONDS=10, SEED_NUMBER=3, CONTROLS=2};
+
+double DELAY = 0.1/PLAYERS;
 
 struct control_buttons{    
 	int down;    
@@ -40,7 +43,11 @@ typedef struct tail_t{
 	int y; 
 } tail_t;
 
-struct control_buttons default_controls [3] = {{KEY_DOWN, KEY_UP, KEY_LEFT, KEY_RIGHT}, {'s', 'w', 'a', 'd'}, {'S', 'W', 'A', 'D'}};
+//struct control_buttons default_controls [3] = {{KEY_DOWN, KEY_UP, KEY_LEFT, KEY_RIGHT}, {'s', 'w', 'a', 'd'}, {'S', 'W', 'A', 'D'}};
+
+struct control_buttons player1_controls[CONTROLS] = {{'s', 'w', 'a', 'd'}, {'S', 'W', 'A', 'D'}};
+
+struct control_buttons player2_controls[CONTROLS] = {{KEY_DOWN, KEY_UP, KEY_LEFT, KEY_RIGHT}, {KEY_DOWN, KEY_UP, KEY_LEFT, KEY_RIGHT}};
 
 void initFood(struct food f[], size_t size){    
 	struct food init = {0,0,0,0,0};    
@@ -107,13 +114,24 @@ void initHead(struct snake_t *head, int x, int y) {
 	head->direction = RIGHT; 
 }
 
-void initSnake(snake_t *head, size_t size, int x, int y) { 
+/*void initSnake(snake_t *head, size_t size, int x, int y) { 
 	tail_t*  tail  = (tail_t*) malloc(MAX_TAIL_SIZE*sizeof(tail_t)); 
 	initTail(tail, MAX_TAIL_SIZE); 
 	initHead(head, x, y); 
 	head->tail = tail; // прикрепляем к голове хвост 
 	head->tsize = size+1; 
 	head->controls = default_controls;
+}*/
+
+void initSnake(snake_t *head[], size_t size, int x, int y,int i){    
+	head[i] = (snake_t*)malloc(sizeof(snake_t));    
+	tail_t* tail = (tail_t*) malloc(MAX_TAIL_SIZE*sizeof(tail_t));    
+	initTail(tail, MAX_TAIL_SIZE);    
+	initHead(head[i], x, y);    
+	head[i]->tail = tail; // прикрепляем к голове хвост    
+	head[i]->tsize = size+1;    
+	//head[i]->controls = default_controls;    
+	//~ head->controls = default_controls[1]; 
 }
 
 void go(struct snake_t *head){ 
@@ -202,6 +220,34 @@ int checkDirection(snake_t* snake, int32_t key) {
 	return checkDir;
 }
 
+_Bool isCrush(snake_t * snake){    //cтолкновение головы с хвостом
+	for(size_t i=1; i<snake->tsize; i++){ 
+		if(snake->x == snake->tail[i].x && snake->y == snake->tail[i].y){ 
+			return 1;
+		}
+	}
+	return 0; 
+}
+
+void repairSeed(struct food f[], size_t nfood, struct snake_t *head){    //Проверка корректности выставления зерна
+	for( size_t i=0; i<head->tsize; i++ ){ 
+		for( size_t j=0; j<nfood; j++ ){  
+			if( f[j].x == head->tail[i].x && f[j].y == head->tail[i].y && f[i].enable ){     //Если хвост совпадает с зерном 
+				mvprintw(1, 0, "Repair tail seed %zu",j); 
+				putFoodSeed(&f[j]); 
+			} 
+		}
+	} 
+	for( size_t i=0; i<nfood; i++ ){ 
+		for( size_t j=0; j<nfood; j++ ){  
+			if( i!=j && f[i].enable && f[j].enable && f[j].x == f[i].x && f[j].y == f[i].y && f[i].enable ){  //Если два зерна на одной точке 
+				mvprintw(1, 0, "Repair same seed %zu",j); 
+				putFoodSeed(&f[j]); 
+			} 
+		} 
+	}
+}
+
 void printLevel(struct snake_t *head){ // счетчик уровня
 	int max_x = 0, max_y = 0;
 	getmaxyx(stdscr, max_y, max_x);
@@ -216,6 +262,54 @@ void printExit(struct snake_t *head){
 	getchar();
 }
 
+int distance(const snake_t snake, const struct food food){   // вычисляет количество ходов до еды    
+	return (abs(snake.x - food.x) + abs(snake.y - food.y)); 
+}
+
+void autoChangeDirection(snake_t *snake, struct food food[], int foodSize){    
+	int pointer = 0;    
+	for (int i = 1; i < foodSize; i++){   // ищем ближайшую еду        
+		pointer = (distance(*snake, food[i]) < distance(*snake, food[pointer])) ? i : pointer;    
+	}    
+	if ((snake->direction == RIGHT || snake->direction == LEFT) && (snake->y != food[pointer].y)){  // горизонтальное движение        
+		snake->direction = (food[pointer].y > snake->y) ? DOWN : UP;    
+	} else if ((snake->direction == DOWN || snake->direction == UP) && (snake->x != food[pointer].x)){  // вертикальное движение        
+		snake->direction = (food[pointer].x > snake->x) ? RIGHT : LEFT;    
+	} 
+}
+
+/*void update(snake_t *head, struct food f[], int key){      
+	autoChangeDirection(head,f,SEED_NUMBER);    
+	go(head);    
+	goTail(head);    
+	if (checkDirection(head,key)){        
+		changeDirection(head, key);    
+	}    
+	refreshFood(food, SEED_NUMBER);    // Обновляем еду    
+	if (haveEat(head,food)){        
+		addTail(head);        
+		printLevel(head);        
+		DELAY -= 0.009;    
+	} 
+}*/
+
+void update(snake_t *head, struct food f[], int key,int ai){   // Версия для добавления ИИ, вторая змея соперник
+	if (ai == 1){    
+		autoChangeDirection(head,f,SEED_NUMBER);
+	} 
+	go(head); 
+	goTail(head); 
+	if (checkDirection(head,key)){    
+		changeDirection(head, key); 
+	} 
+	refreshFood(food, SEED_NUMBER);// Обновляем еду 
+	if (haveEat(head,food)){    
+		addTail(head);    
+		printLevel(head);    
+		DELAY -= 0.009; 
+	} 
+} 
+
 void pause(void){
 	int max_x = 0, max_y = 0;
 	getmaxyx(stdscr, max_y, max_x);
@@ -227,8 +321,14 @@ void pause(void){
 
 int main(int argc, char **argv)
 {
-	snake_t* snake = (snake_t*)malloc(sizeof(snake_t)); 
-	initSnake(snake,START_TAIL_SIZE,10,10); 
+	//snake_t* snake = (snake_t*)malloc(sizeof(snake_t)); 
+	//initSnake(snake,START_TAIL_SIZE,10,10);
+	snake_t* snakes[PLAYERS];    
+		for (int i = 0; i < PLAYERS; i++){        
+			initSnake(snakes,START_TAIL_SIZE,10+i*10,10+i*10,i);
+		}
+		snakes[0]->controls = player1_controls;    
+		snakes[1]->controls = player2_controls;
 	initFood(food, MAX_FOOD_SIZE);
 	initscr(); 
 	keypad(stdscr, TRUE); // Включаем F1, F2, стрелки и т.д. 
@@ -239,14 +339,27 @@ int main(int argc, char **argv)
 	timeout(0); //Отключаем таймаут после нажатия клавиши в цикле 
 	int key_pressed=0; 
 	putFood(food, SEED_NUMBER);
-	double DELAY = 0.1;
-	while( key_pressed != STOP_GAME ){
+	_Bool isFinish = 0;
+	while( key_pressed != STOP_GAME && !isFinish){
 		clock_t begin = clock();    
 		key_pressed = getch(); // Считываем клавишу
+		update(snakes[0], food, key_pressed, 0); 
+		update(snakes[1], food, key_pressed, 1); 
+		if(isCrush(snakes[0])){    
+			printExit(snakes[0]);    
+			isFinish = 1; 
+		}
+		/*for (int i = 0; i < PLAYERS; i++){            
+			update(snakes[i], food, key_pressed);            
+			if(isCrush(snakes[i])){                
+				break;
+			}            
+			repairSeed(food, SEED_NUMBER, snakes[i]);        
+		}*/
 		if (key_pressed == PAUSE_GAME){
 			pause();
-		}    
-		go(snake);
+		}
+		/*go(snake);
 		goTail(snake);       
 		if (checkDirection(snake, key_pressed)) {   
 			changeDirection(snake, key_pressed); 
@@ -256,13 +369,19 @@ int main(int argc, char **argv)
 			addTail(snake);
 			printLevel(snake);
 			DELAY -= 0.009;        
-		}
+		}*/
 		while ((double)(clock() - begin)/CLOCKS_PER_SEC<DELAY)        
 		{}
-	} 
-	printExit(snake);
+		refresh();  //Обновление экрана, вывели кадр анимации
+	}
+	for (int i = 0; i < PLAYERS; i++){        
+		printExit(snakes[i]);        
+		free(snakes[i]->tail);        
+		free(snakes[i]);    
+	}
+	/*printExit(snake);
 	free(snake->tail); 
-	free(snake); 
+	free(snake);*/
 	endwin(); // Завершаем режим curses mod
 	return 0;
 }
