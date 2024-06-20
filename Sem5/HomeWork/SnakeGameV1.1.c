@@ -278,6 +278,8 @@ void autoChangeDirection(snake_t *snake, struct food food[], int foodSize){
 	} 
 }
 
+
+
 /*void update(snake_t *head, struct food f[], int key){      
 	autoChangeDirection(head,f,SEED_NUMBER);    
 	go(head);    
@@ -321,8 +323,6 @@ void pause(void){
 
 int main(int argc, char **argv)
 {
-	//snake_t* snake = (snake_t*)malloc(sizeof(snake_t)); 
-	//initSnake(snake,START_TAIL_SIZE,10,10);
 	snake_t* snakes[PLAYERS];    
 		for (int i = 0; i < PLAYERS; i++){        
 			initSnake(snakes,START_TAIL_SIZE,10+i*10,10+i*10,i);
@@ -359,17 +359,6 @@ int main(int argc, char **argv)
 		if (key_pressed == PAUSE_GAME){
 			pause();
 		}
-		/*go(snake);
-		goTail(snake);       
-		if (checkDirection(snake, key_pressed)) {   
-			changeDirection(snake, key_pressed); 
-		}
-		refreshFood(food, SEED_NUMBER);// Обновляем еду        
-		if (haveEat(snake,food)){            
-			addTail(snake);
-			printLevel(snake);
-			DELAY -= 0.009;        
-		}*/
 		while ((double)(clock() - begin)/CLOCKS_PER_SEC<DELAY)        
 		{}
 		refresh();  //Обновление экрана, вывели кадр анимации
@@ -379,9 +368,6 @@ int main(int argc, char **argv)
 		free(snakes[i]->tail);        
 		free(snakes[i]);    
 	}
-	/*printExit(snake);
-	free(snake->tail); 
-	free(snake);*/
 	endwin(); // Завершаем режим curses mod
 	return 0;
 }
