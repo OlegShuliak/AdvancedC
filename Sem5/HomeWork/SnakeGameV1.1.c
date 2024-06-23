@@ -36,6 +36,8 @@ typedef struct snake_t{
 	size_t tsize; 
 	struct tail_t *tail; 
 	struct control_buttons *controls; 
+	int color;
+	int ai;
 } snake_t;
 
 typedef struct tail_t{ 
@@ -112,17 +114,39 @@ void initHead(struct snake_t *head, int x, int y) {
 	head->direction = RIGHT; 
 }
 
+void setColor(int objectType){    
+	attroff(COLOR_PAIR(1));    
+	attroff(COLOR_PAIR(2));    
+	attroff(COLOR_PAIR(3)); 
+	switch (objectType){ 
+		case 1:{    // SNAKE1            
+			attron(COLOR_PAIR(1)); 
+			break; 
+		} 
+		case 2:{    // SNAKE2            
+			attron(COLOR_PAIR(2)); 
+			break; 
+		} 
+		case 3:{    // FOOD            
+			attron(COLOR_PAIR(3)); 
+			break; 
+		} 
+	} 
+}
+
 void initSnake(snake_t *head[], size_t size, int x, int y,int i){    
 	head[i] = (snake_t*)malloc(sizeof(snake_t));    
 	tail_t* tail = (tail_t*) malloc(MAX_TAIL_SIZE*sizeof(tail_t));    
 	initTail(tail, MAX_TAIL_SIZE);    
 	initHead(head[i], x, y);    
 	head[i]->tail = tail; // прикрепляем к голове хвост    
-	head[i]->tsize = size+1;    
+	head[i]->tsize = size+1;
+	head[i]->color = i+1;    
 }
 
 void go(struct snake_t *head){ 
-	char ch = '@'; int max_x=0, max_y=0;    
+	char ch = '@'; int max_x=0, max_y=0;
+	setColor(head->color);    
 	getmaxyx(stdscr, max_y, max_x); // macro - размер терминала    
 	mvprintw(head->y, head->x, " "); // очищаем один символ 
 	switch (head->direction) { 
@@ -157,7 +181,8 @@ void go(struct snake_t *head){
 }
 
 void goTail(struct snake_t *head) { 
-	char ch = '*';    
+	char ch = '*';
+	setColor(head->color);     
 	mvprintw(head->tail[head->tsize-1].y, head->tail[head->tsize-1].x, " "); 
 	for(size_t i = head->tsize-1; i>0; i--) {        
 		head->tail[i] = head->tail[i-1]; 
@@ -291,24 +316,50 @@ void pause(void){
 	mvprintw(max_y /2, max_x /2 - 5, "                   ");
 }
 
-void setColor(int objectType){    
-	attroff(COLOR_PAIR(1));    
-	attroff(COLOR_PAIR(2));    
-	attroff(COLOR_PAIR(3)); 
-	switch (objectType){ 
-		case 1:{    // SNAKE1            
-			attron(COLOR_PAIR(1)); 
-			break; 
-		} 
-		case 2:{    // SNAKE2            
-			attron(COLOR_PAIR(2)); 
-			break; 
-		} 
-		case 3:{    // FOOD            
-			attron(COLOR_PAIR(3)); 
-			break; 
-		} 
-	} 
+void startMenu(){
+	initscr();
+	noecho;
+	curs_set(FALSE);
+	cbreak();
+	
+	if(has_colors() == FALSE){
+		endwin();
+		printf("Your terminal does not support color\n");
+		exit(1);
+	}
+	start_color();    
+	init_pair(1, COLOR_RED, COLOR_BLACK);    
+	init_pair(2, COLOR_YELLOW, COLOR_BLACK); 
+	attron(COLOR_PAIR(1));
+	mvprintw(1,1,"1. Start");
+	attroff(COLOR_PAIR(1));
+	
+	attron(COLOR_PAIR(2));
+	mvprintw(3,1,"2. Exit");
+	attron(COLOR_PAIR(1));
+		mvprintw(7, 30, "@******************************@");
+	attron(COLOR_PAIR(2));
+		mvprintw(7, 30, "  SNAKE  SNAKE  SNAKE SNAKE     ");
+		mvprintw(7, 30, "@******************************@");
+	char ch = (int) NULL;
+	while(1) {
+		ch = getch();
+		if (ch == '1'){
+			clear();
+			attron(COLOR_PAIR(2));
+			mvprintw(10, 50, "S N A K E ");
+			
+			attron(COLOR_PAIR(1));
+			mvprintw(20, 50, "Press any key ...");
+			break;
+		} else if (ch == '2'){
+			endwin();
+			exit(0);
+		}
+	}
+	refresh();
+	getch();
+	endwin();
 }
 
 int main(int argc, char **argv)
@@ -335,6 +386,7 @@ int main(int argc, char **argv)
 	int key_pressed=0; 
 	putFood(food, SEED_NUMBER);
 	_Bool isFinish = 0;
+	startMenu();
 	while( key_pressed != STOP_GAME && !isFinish){
 		clock_t begin = clock();    
 		key_pressed = getch(); // Считываем клавишу
