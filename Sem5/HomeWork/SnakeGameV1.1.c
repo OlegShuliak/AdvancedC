@@ -43,13 +43,11 @@ typedef struct tail_t{
 	int y; 
 } tail_t;
 
-//struct control_buttons default_controls [3] = {{KEY_DOWN, KEY_UP, KEY_LEFT, KEY_RIGHT}, {'s', 'w', 'a', 'd'}, {'S', 'W', 'A', 'D'}};
-
 struct control_buttons player1_controls[CONTROLS] = {{'s', 'w', 'a', 'd'}, {'S', 'W', 'A', 'D'}};
 
 struct control_buttons player2_controls[CONTROLS] = {{KEY_DOWN, KEY_UP, KEY_LEFT, KEY_RIGHT}, {KEY_DOWN, KEY_UP, KEY_LEFT, KEY_RIGHT}};
 
-void initFood(struct food f[], size_t size){    
+void initFood(struct food f[], size_t size){  //Инициализация еды  
 	struct food init = {0,0,0,0,0};    
 	int max_y=0, max_x=0;    
 	getmaxyx(stdscr, max_y, max_x);    
@@ -101,7 +99,7 @@ _Bool haveEat(struct snake_t *head, struct food f[]){    //Поедания зе
 	return 0; 
 }
 
-void initTail(struct tail_t t[], size_t size) { 
+void initTail(struct tail_t t[], size_t size) {    
 	struct tail_t init_t={0,0}; 
 	for(size_t i=0; i<size; i++) {   
 		t[i]=init_t; 
@@ -114,15 +112,6 @@ void initHead(struct snake_t *head, int x, int y) {
 	head->direction = RIGHT; 
 }
 
-/*void initSnake(snake_t *head, size_t size, int x, int y) { 
-	tail_t*  tail  = (tail_t*) malloc(MAX_TAIL_SIZE*sizeof(tail_t)); 
-	initTail(tail, MAX_TAIL_SIZE); 
-	initHead(head, x, y); 
-	head->tail = tail; // прикрепляем к голове хвост 
-	head->tsize = size+1; 
-	head->controls = default_controls;
-}*/
-
 void initSnake(snake_t *head[], size_t size, int x, int y,int i){    
 	head[i] = (snake_t*)malloc(sizeof(snake_t));    
 	tail_t* tail = (tail_t*) malloc(MAX_TAIL_SIZE*sizeof(tail_t));    
@@ -130,8 +119,6 @@ void initSnake(snake_t *head[], size_t size, int x, int y,int i){
 	initHead(head[i], x, y);    
 	head[i]->tail = tail; // прикрепляем к голове хвост    
 	head[i]->tsize = size+1;    
-	//head[i]->controls = default_controls;    
-	//~ head->controls = default_controls[1]; 
 }
 
 void go(struct snake_t *head){ 
@@ -278,23 +265,6 @@ void autoChangeDirection(snake_t *snake, struct food food[], int foodSize){
 	} 
 }
 
-
-
-/*void update(snake_t *head, struct food f[], int key){      
-	autoChangeDirection(head,f,SEED_NUMBER);    
-	go(head);    
-	goTail(head);    
-	if (checkDirection(head,key)){        
-		changeDirection(head, key);    
-	}    
-	refreshFood(food, SEED_NUMBER);    // Обновляем еду    
-	if (haveEat(head,food)){        
-		addTail(head);        
-		printLevel(head);        
-		DELAY -= 0.009;    
-	} 
-}*/
-
 void update(snake_t *head, struct food f[], int key,int ai){   // Версия для добавления ИИ, вторая змея соперник
 	if (ai == 1){    
 		autoChangeDirection(head,f,SEED_NUMBER);
@@ -321,6 +291,26 @@ void pause(void){
 	mvprintw(max_y /2, max_x /2 - 5, "                   ");
 }
 
+void setColor(int objectType){    
+	attroff(COLOR_PAIR(1));    
+	attroff(COLOR_PAIR(2));    
+	attroff(COLOR_PAIR(3)); 
+	switch (objectType){ 
+		case 1:{    // SNAKE1            
+			attron(COLOR_PAIR(1)); 
+			break; 
+		} 
+		case 2:{    // SNAKE2            
+			attron(COLOR_PAIR(2)); 
+			break; 
+		} 
+		case 3:{    // FOOD            
+			attron(COLOR_PAIR(3)); 
+			break; 
+		} 
+	} 
+}
+
 int main(int argc, char **argv)
 {
 	snake_t* snakes[PLAYERS];    
@@ -331,12 +321,17 @@ int main(int argc, char **argv)
 		snakes[1]->controls = player2_controls;
 	initFood(food, MAX_FOOD_SIZE);
 	initscr(); 
+	start_color();    
+	init_pair(1, COLOR_RED, COLOR_BLACK);    
+	init_pair(2, COLOR_BLUE, COLOR_BLACK);    
+	init_pair(3, COLOR_GREEN, COLOR_BLACK);
 	keypad(stdscr, TRUE); // Включаем F1, F2, стрелки и т.д. 
 	raw();            // Откдючаем line buffering 
 	noecho();        // Отключаем echo() режим при вызове getch 
 	curs_set(FALSE); //Отключаем курсор 
 	mvprintw(0, 0,"Use arrows for control. Press 'F10' for EXIT"); 
 	timeout(0); //Отключаем таймаут после нажатия клавиши в цикле 
+	setColor(1);
 	int key_pressed=0; 
 	putFood(food, SEED_NUMBER);
 	_Bool isFinish = 0;
@@ -349,13 +344,6 @@ int main(int argc, char **argv)
 			printExit(snakes[0]);    
 			isFinish = 1; 
 		}
-		/*for (int i = 0; i < PLAYERS; i++){            
-			update(snakes[i], food, key_pressed);            
-			if(isCrush(snakes[i])){                
-				break;
-			}            
-			repairSeed(food, SEED_NUMBER, snakes[i]);        
-		}*/
 		if (key_pressed == PAUSE_GAME){
 			pause();
 		}
