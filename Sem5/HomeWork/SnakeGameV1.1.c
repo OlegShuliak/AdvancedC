@@ -278,8 +278,6 @@ void autoChangeDirection(snake_t *snake, struct food food[], int foodSize){
 	} 
 }
 
-
-
 /*void update(snake_t *head, struct food f[], int key){      
 	autoChangeDirection(head,f,SEED_NUMBER);    
 	go(head);    
@@ -321,6 +319,26 @@ void pause(void){
 	mvprintw(max_y /2, max_x /2 - 5, "                   ");
 }
 
+void setColor(int objectType){    
+	attroff(COLOR_PAIR(1));    
+	attroff(COLOR_PAIR(2));    
+	attroff(COLOR_PAIR(3)); 
+	switch (objectType){ 
+		case 1:{    // SNAKE1            
+			attron(COLOR_PAIR(1)); 
+			break; 
+		} 
+		case 2:{    // SNAKE2            
+			attron(COLOR_PAIR(2)); 
+			break; 
+		} 
+		case 3:{    // FOOD            
+			attron(COLOR_PAIR(3)); 
+			break; 
+		} 
+	} 
+}
+
 int main(int argc, char **argv)
 {
 	snake_t* snakes[PLAYERS];    
@@ -331,12 +349,17 @@ int main(int argc, char **argv)
 		snakes[1]->controls = player2_controls;
 	initFood(food, MAX_FOOD_SIZE);
 	initscr(); 
+	start_color();    
+	init_pair(1, COLOR_RED, COLOR_BLACK);    
+	init_pair(2, COLOR_BLUE, COLOR_BLACK);    
+	init_pair(3, COLOR_GREEN, COLOR_BLACK);
 	keypad(stdscr, TRUE); // Включаем F1, F2, стрелки и т.д. 
 	raw();            // Откдючаем line buffering 
 	noecho();        // Отключаем echo() режим при вызове getch 
 	curs_set(FALSE); //Отключаем курсор 
 	mvprintw(0, 0,"Use arrows for control. Press 'F10' for EXIT"); 
 	timeout(0); //Отключаем таймаут после нажатия клавиши в цикле 
+	setColor(1);
 	int key_pressed=0; 
 	putFood(food, SEED_NUMBER);
 	_Bool isFinish = 0;
